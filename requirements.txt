@@ -1,0 +1,6 @@
+requests==2.18.4
+requests-oauth==0.4.1
+requests-oauthlib==0.8.0
+jsonpath-ng==1.4.3
+woocommerce==1.2.1
+CurrencyConverter==0.13.3

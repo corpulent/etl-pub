@@ -1,0 +1,44 @@
+{
+	"type": "workflow",
+	"steps": [{
+		"order": 0,
+		"type": "connector_etsy",
+		"data": {
+			"url": "/shops/DevSandbox/listings/inactive",
+			"name": "VARIABLE: GET ETSY listings",
+			"steps": [{
+				"order": 0,
+				"type": "entity",
+				"data": {
+					"name": "VARIABLE: CREATE ETSY listings",
+					"merge": true,
+					"classifiers": [],
+					"attachments": [],
+					"compound": true,
+					"operation": "create",
+					"get_data_on": "data",
+					"import_mapper": 28,
+					"unique_fields": ["listing_id"]
+				}
+			}],
+			"method": "GET",
+			"params": {
+				"includes": "MainImage,Images,Shop,Section,ShippingInfo,PaymentInfo"
+			},
+			"oauth_token": "eae61b95f71e5be1a0ab98a08beffc",
+			"consumer_key": "rmqw209x8t1zzvaft9hfa0pc",
+			"store_data_on": "data",
+			"consumer_secret": "9fyavx5q0d",
+			"oauth_token_secret": "8520709438",
+			"expects_response_code": [201, 200]
+		}
+	}, {
+		"order": 1,
+		"type": "stop",
+		"data": {
+			"name": "Stop",
+			"response": true,
+			"return_response_body": false
+		}
+	}]
+}
