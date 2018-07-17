@@ -25,14 +25,89 @@ from .actions import Iterate
 from.utils import form_doc
 
 
+ENDPOINT_ROOT_URL = 'http://data-gate.us-east-1.elasticbeanstalk.com'
+
+
 class WorkflowHandler(object):
     def __init__(self, workflow_doc, **kwargs):
         self.workflow_doc = workflow_doc
         self.data = None
+        self.immutable = None
         self.steps = self._sort_steps(self.workflow_doc.get('steps'))
         self.unit_handlers = self._get_unit_handlers()
         self.source = self.workflow_doc.get('source', -1)
         self.events = []
+
+        self.return_response_body = True
+
+    def _handle_entity_save(self, doc, data):
+        doc_data = doc['data']
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': doc_data['jwt_token']
+        }
+        payload = {
+            'doc_data': data,
+            'classifiers': doc_data['classifiers'],
+            'attachments': doc_data['attachments'],
+            'configs': {
+                'compound': doc_data['compound'],
+                'unique_fields': doc_data['unique_fields'],
+                'merge': doc_data['merge']
+            }
+        }
+        endpoint_url = "{}/data_gate/in/{}/?mapper_id={}".format(
+            ENDPOINT_ROOT_URL,
+            doc_data['org_id'],
+            doc_data['import_mapper_id']
+        )
+
+        return requests.post(
+            endpoint_url,
+            data = json.dumps(payload),
+            headers=headers
+        )
+
+    def _handle_entity_fetch(self, doc, page=1):
+        print("_handle_entity_fetch page {}".format(page))
+
+        doc_data = doc['data']
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': doc_data['jwt_token']
+        }
+        endpoint_url = "{}/entities/{}/?page={}&page_size=1".format(
+            ENDPOINT_ROOT_URL,
+            doc_data['org_id'],
+            page
+        )
+
+        response = requests.get(
+            endpoint_url,
+            headers=headers
+        )
+
+        if response.status_code in [401, 404]:
+            print('Got a response error {}, reason: {}'.format(
+                response.status_code,
+                response.reason))
+            return
+
+        response = response.json()
+        next_set = response['links']['next']
+        # Need only a single result.
+        local_data = response['results']
+
+        self._store_data(local_data, doc_data['store_data_on'])
+
+        steps = doc_data.get('steps', False)
+
+        self._run_steps(steps)
+
+        if next_set:
+            page = int(page) + 1
+
+            self._handle_entity_fetch(doc, page=page)
 
     def _get_unit_handlers(self):
         """Collects references for all unit handlers."""
@@ -64,17 +139,23 @@ class WorkflowHandler(object):
         if get_data_on == 'data':
             return self.data
 
+        if get_data_on == 'immutable':
+            return self.immutable
+
     def _store_data(self, data, data_source):
         if data_source == 'data':
             self.data = data
 
+        if data_source == 'immutable':
+            self.immutable = data
+
     def process_etsy_request(self, conn_etsy, **kwargs):
         """Process Etsy request."""
+        doc = kwargs.get('doc')
+        doc_data = doc['data']
         url = kwargs.get('url')
         steps = kwargs.get('steps')
         method = kwargs.get('method')
-        doc = kwargs.get('doc')
-        doc_data = doc['data']
         params = doc_data.get('params', None)
         vars_mapped = {}
         data = self._get_data(doc_data.get('get_data_on'))
@@ -103,9 +184,7 @@ class WorkflowHandler(object):
                 )
 
             for listings in listings_generator:
-                print(doc_data)
                 self._store_data(listings, doc_data.get('store_data_on'))
-
                 self._run_steps(steps)
 
         if method == 'post':
@@ -163,57 +242,38 @@ class WorkflowHandler(object):
         """
         doc_data = doc['data']
 
-        #print(doc)
-        #print(doc_data)
-
         if doc_data['operation'] == 'read':
-            pass
-            # If no URL params in query (if the request.GET is not set)
-            # then populate it with query from the entity doc.
-            #self.update_request_object(doc_data['query'])
-            #self.handle_entity_fetch(doc_data)
+            self._handle_entity_fetch(doc)
 
         if doc_data['operation'] == 'create':
             data = self._get_data(doc_data.get('get_data_on'))
-            
-            #ignore_results = doc_data.get('ignore_results', False)
 
-            for data_item in data['results']:
-                headers = {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoyLCJ1c2VybmFtZSI6ImFydGVtIiwiZXhwIjoxNTMxOTIwMTU2LCJlbWFpbCI6ImFydGVtZ29sdWJAZ21haWwuY29tIiwib3JpZ19pYXQiOjE1MzE3NDczNTZ9.6FsA3_wydwvWcry6Wcnfvc4CTjMR0PSP93aiZfoOqWk'
-                }
-                payload = {
-                    'doc_data': data_item,
-                    'classifiers': doc_data['classifiers'],
-                    'attachments': doc_data['attachments'],
-                    'configs': {
-                        'compound': doc_data['compound'],
-                        'unique_fields': doc_data['unique_fields'],
-                        'merge': doc_data['merge']
-                    }
-                }
+            if data and isinstance(data, list):
+                for data_item in data['results']:
+                    self._handle_entity_save(doc, data_item)
 
-                print(json.dumps(payload))
+            if data and isinstance(data, dict):
+                self._handle_entity_save(doc, data)
 
-                response = requests.post(
-                    'http://data-gate.us-east-1.elasticbeanstalk.com/data_gate/in/1/?mapper_id=1',
-                    data = json.dumps(payload),
-                    headers=headers
-                )
+    def _unit_loop(self, doc):
+        doc_data = doc['data']
+        path = doc_data.get('path', '$')
+        steps = doc_data.get('steps', False)
+        jsonpath_expr = parse(path)
+        data = self._get_data(doc_data['get_data_on'])
 
-                print(response.status_code)
-                print(response.reason)
+        if data and isinstance(data, list):
+            local_data = [match.value for match in jsonpath_expr.find(data) if match.value][0]
 
-            #self.catalog_ids = self._check_catalogs(
-            #    entity_doc.get('catalogs'))
-            #
-            #if 'results' in data and not ignore_results:
-            #    for record in data['results']:
-            #        self.process_single_entity(entity_doc, record)
-            #
-            #if isinstance(data, dict):
-            #    self.process_single_entity(entity_doc, data)
+            if local_data:
+                for obj in local_data:
+                    self._store_data(obj, doc_data['store_data_on'])
+                    self._run_steps(steps)
+
+    def _unit_stop(self, doc):
+        doc_data = doc['data']
+
+        self.return_response_body = doc_data.get('return_response_body', True)
 
     def run(self, passed_steps=False):
         """Run workflow process working step by step."""

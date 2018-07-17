@@ -5,19 +5,19 @@
 		"type": "connector_etsy",
 		"data": {
 			"url": "/shops/DevSandbox/listings/inactive",
-			"name": "VARIABLE: GET ETSY listings",
 			"steps": [{
 				"order": 0,
 				"type": "entity",
 				"data": {
-					"name": "VARIABLE: CREATE ETSY listings",
+					"jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMxOTk2MzA1LCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzE4MjM1MDV9.ADBUNP8LqKtRb9Y_W5MF8p0b50JTRgLOi97GJX9IQsA",
+					"org_id": 1,
 					"merge": true,
 					"classifiers": [],
 					"attachments": [],
 					"compound": true,
 					"operation": "create",
 					"get_data_on": "data",
-					"import_mapper": 28,
+					"import_mapper_id": 1,
 					"unique_fields": ["listing_id"]
 				}
 			}],
@@ -36,7 +36,6 @@
 		"order": 1,
 		"type": "stop",
 		"data": {
-			"name": "Stop",
 			"response": true,
 			"return_response_body": false
 		}
