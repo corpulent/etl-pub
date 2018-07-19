@@ -1,5 +1,4 @@
 {
-	"type": "workflow",
 	"steps": [{
 		"order": 0,
 		"type": "connector_etsy",

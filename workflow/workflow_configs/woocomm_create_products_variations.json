@@ -1,0 +1,37 @@
+{
+	"steps": [{
+        "order": 0,
+        "type": "entity",
+		"data": {
+            "query": "page=1&page_size=1",
+            "steps": [{
+                "order": 0,
+                "type": "action_connector_woocommerce",
+                "data": {
+                    "url": "https://staging.joinmarrakesh.com",
+                    "vars": {
+                        "product_id": "$[*].woocomm_listing_id"
+                    },
+                    "steps": [],
+                    "method": "POST",
+                    "endpoint": "products/$product_id/variations/batch",
+                    "get_data_on": "data",
+                    "consumer_key": "ck_b6aeb851b944537b1e277a5739387b8a99d69844",
+                    "export_mapper": 89,
+                    "consumer_secret": "cs_a5fc8ca9cec1ed93bcb115f9bb3a5ed01183461c",
+                    "generate_variations": true,
+                    "expects_response_code": [201, 200]
+                }
+            }],
+            "operation": "read",
+            "paginated": true,
+            "store_data_on": "data"
+        }
+	}, {
+        "order": 1,
+        "type": "stop",
+		"data": {
+            "return_response_body": true
+        }
+	}]
+}

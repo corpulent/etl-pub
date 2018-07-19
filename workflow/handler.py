@@ -9,7 +9,6 @@ import copy
 import decimal
 import requests
 
-from woocommerce import API
 from jsonpath_ng import parse
 from currency_converter import CurrencyConverter
 
@@ -20,12 +19,13 @@ from requests import (
 )
 
 from .connectors.etsy import main
+from .connectors.woocomm import WooComm
 
 from .actions import Iterate
-from.utils import form_doc
+from .utils import form_doc
 
 
-ENDPOINT_ROOT_URL = 'http://data-gate.us-east-1.elasticbeanstalk.com'
+ENDPOINT_ROOT_URL = 'http://localhost:9001'
 
 
 class WorkflowHandler(object):
@@ -33,6 +33,7 @@ class WorkflowHandler(object):
         self.workflow_doc = workflow_doc
         self.data = None
         self.immutable = None
+        self.http_response_data = None
         self.steps = self._sort_steps(self.workflow_doc.get('steps'))
         self.unit_handlers = self._get_unit_handlers()
         self.source = self.workflow_doc.get('source', -1)
@@ -142,12 +143,18 @@ class WorkflowHandler(object):
         if get_data_on == 'immutable':
             return self.immutable
 
+        if get_data_on == 'http_response_data':
+            return self.http_response_data
+
     def _store_data(self, data, data_source):
         if data_source == 'data':
             self.data = data
 
         if data_source == 'immutable':
             self.immutable = data
+
+        if data_source == 'http_response_data':
+            self.http_response_data = data
 
     def process_etsy_request(self, conn_etsy, **kwargs):
         """Process Etsy request."""
@@ -203,6 +210,131 @@ class WorkflowHandler(object):
                     conn_etsy.create_listings(payload=item)
             else:
                 conn_etsy.create_listings(payload=self.data)
+
+    def _unit_action_connector_woocommerce(self, doc, offset=None):
+        doc_data = doc['data']
+        url = doc_data.get('url')
+        method = doc_data.get('method', 'get').lower()
+        consumer_key = doc_data.get('consumer_key')
+        consumer_secret = doc_data.get('consumer_secret')
+        expected_codes = doc_data.get('expects_response_code')
+        endpoint = doc_data.get('endpoint')
+        store_data_on = doc_data.get('store_data_on')
+        get_data_on = doc_data.get('get_data_on')
+        steps = doc_data.get('steps')
+        generate_attributes = doc_data.get('generate_attributes', False)
+        generate_variations = doc_data.get('generate_variations', False)
+        tmp_data = False
+        data = self._get_data(get_data_on)
+        woocomm = WooComm(
+            doc,
+            url=url,
+            consumer_key=consumer_key,
+            consumer_secret=consumer_secret,
+        )
+
+        if method in ['post', 'put']:
+            custom = doc_data.get('custom')
+            doc_data_list = []
+
+            for key, val in enumerate(data):
+                doc_data_list.append(val['doc_data'])
+
+            if custom:
+                for key, val in enumerate(doc_data_list):
+                    doc_data_list[key] = woocomm._generate_custom_structure(val)
+
+            for key, val in enumerate(doc_data_list):
+                doc_data_list[key] = woocomm._generate_attributes(val)
+
+            if generate_variations:
+                for key, val in enumerate(doc_data_list):
+                    doc_data_list[key] = woocomm._generate_variations(val)
+
+            if doc_data.get('export_mapper'):
+                mapper = doc_data.get('export_mapper')
+                _map = mapper['map']
+                cconverter = CurrencyConverter()
+                mapped_list = []
+
+                for i in doc_data_list:
+                    amount = i['price']
+                    currency_code = i['currency_code']
+                    amount_in_usd = cconverter.convert(amount, currency_code, 'USD')
+                    D = decimal.Decimal
+                    cent = D('0.01')
+                    x = D(amount_in_usd)
+                    i['price'] = str(x.quantize(cent,rounding=decimal.ROUND_UP))
+
+                    _map_copy = copy.copy(_map)
+                    mapped_obj = form_doc(i, _map_copy)
+
+                    if 'ignored_parts' in mapped_obj:
+                        ignored_parts = mapped_obj.pop('ignored_parts')
+                        mapped_obj = {**mapped_obj, **ignored_parts}
+
+                    mapped_list.append(mapped_obj)
+
+                tmp_data = mapped_list
+
+        # Because this happens here after the data gets mapped propely above,
+        # the pagination of entities has to be one at a time.
+        if data:
+            if doc_data.get('vars'):
+                var_list = doc_data.get('vars').items()
+
+                for k, v in var_list:
+                    jsonpath_expr = parse(v)
+                    found_data = jsonpath_expr.find(data)
+                    vars_mapped[k] = [match.value for match in found_data][0]
+
+                for k, v in vars_mapped.items():
+                    endpoint = endpoint.replace("$%s" % k, str(v))
+
+        if method == 'post':
+            if isinstance(tmp_data, list):
+                response = []
+
+                for val in tmp_data:
+                    response.append(woocomm.http_post(endpoint, val))
+
+        if method == 'put':
+            response = woocomm.http_put(endpoint, tmp_data)
+
+        if method == 'get':
+            '''
+            if self.get_data(doc.get('store_data_on')) and method == 'get':
+                with_offset = doc.get('with_offset', False)
+
+                if with_offset:
+                    if offset is None:
+                        offset = 0
+
+                    offset = offset + doc.get('per_page')
+
+                self._unit_action_connector_woocommerce(self.doc, offset=offset)
+            '''
+            response = woocomm.http_get(endpoint)
+
+        if method == 'delete':
+            response = woocomm.http_delete(endpoint)
+
+        if method == 'options':
+            response = woocomm.http_options(endpoint)
+
+        if expected_codes:
+            expected_codes = [str(code) for code in expected_codes]
+
+        if isinstance(response, list):
+            self.http_response_data = []
+
+            for response_item in response:
+                #if response_item['status_code'] < 200 or response_item['status_code'] >= 300:
+                #    data = response_item.json()
+                self.http_response_data.append(response_item)
+
+        if steps:
+            self._run_steps(steps)
 
     def _unit_connector_etsy(self, doc):
         doc_data = doc['data']
@@ -263,10 +395,10 @@ class WorkflowHandler(object):
         data = self._get_data(doc_data['get_data_on'])
 
         if data and isinstance(data, list):
-            local_data = [match.value for match in jsonpath_expr.find(data) if match.value][0]
+            temp_data = [match.value for match in jsonpath_expr.find(data) if match.value][0]
 
-            if local_data:
-                for obj in local_data:
+            if temp_data:
+                for obj in temp_data:
                     self._store_data(obj, doc_data['store_data_on'])
                     self._run_steps(steps)
 

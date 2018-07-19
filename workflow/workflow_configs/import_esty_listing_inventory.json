@@ -1,11 +1,10 @@
 {
-    "type": "workflow",
 	"steps": [{
         "order": 0,
         "type": "entity",
         "data": {
-            "jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoyLCJ1c2VybmFtZSI6ImFydGVtIiwiZXhwIjoxNTMyMDAwMTc0LCJlbWFpbCI6ImFydGVtZ29sdWJAZ21haWwuY29tIiwib3JpZ19pYXQiOjE1MzE4MjczNzR9.Leh4tzJq6p9RbyrQ_qEORqthiAk8rbWdWJXT_XWz7eo",
-            "org_id": 1,
+            "jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyMDA2OTU3LCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzE4MzQxNTd9.7AhJr5o3v3h3hPAr6o83PvBKyye0LyyYj4An0oO9-uc",
+            "org_id": 10,
             "operation": "read",
             "store_data_on": "immutable",
             "steps": [{
@@ -43,15 +42,15 @@
                                 "order": 0,
                                 "type": "entity",
                                 "data": {
-                                    "jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoyLCJ1c2VybmFtZSI6ImFydGVtIiwiZXhwIjoxNTMyMDAwMTc0LCJlbWFpbCI6ImFydGVtZ29sdWJAZ21haWwuY29tIiwib3JpZ19pYXQiOjE1MzE4MjczNzR9.Leh4tzJq6p9RbyrQ_qEORqthiAk8rbWdWJXT_XWz7eo",
-                                    "org_id": 1,
+                                    "jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyMDA2OTU3LCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzE4MzQxNTd9.7AhJr5o3v3h3hPAr6o83PvBKyye0LyyYj4An0oO9-uc",
+                                    "org_id": 10,
                                     "merge": true,
                                     "classifiers": [],
                                     "attachments": [],
                                     "compound": true,
                                     "operation": "create",
                                     "get_data_on": "data",
-                                    "import_mapper_id": 2,
+                                    "import_mapper_id": 3,
                                     "unique_fields": ["listing_id"],
                                     "ignore_results": true
                                 }
