@@ -63,11 +63,13 @@ class WorkflowHandler(object):
             doc_data['import_mapper_id']
         )
 
-        return requests.post(
+        ret = requests.post(
             endpoint_url,
             data = json.dumps(payload),
             headers=headers
         )
+
+        return ret
 
     def _handle_entity_fetch(self, doc, page=1):
         print("_handle_entity_fetch page {}".format(page))
@@ -191,7 +193,17 @@ class WorkflowHandler(object):
                 )
 
             for listings in listings_generator:
-                self._store_data(listings, doc_data.get('store_data_on'))
+                # In special cases save specific payloads into data, and
+                # everything else are the results.
+                try:
+                    if listings['type'] == 'ListingInventory':
+                        self._store_data(listings, doc_data.get('store_data_on'))
+
+                    if listings['type'] == 'Listing':
+                        self._store_data(listings['results'], doc_data.get('store_data_on'))
+                except KeyError as err:
+                    self._store_data(listings['results'], doc_data.get('store_data_on'))
+
                 self._run_steps(steps)
 
         if method == 'post':
@@ -303,14 +315,20 @@ class WorkflowHandler(object):
                 response = []
 
                 for val in tmp_data:
-                    response.append(woocomm.http_post(endpoint, val))
+                    try:
+                        if not val['woocomm_listing_id']:
+                           raise KeyError('woocomm_listing_id is empty')
+                    except KeyError as err:
+                        print('{} woocomm_listing_id does not exist,'
+                            'creating a new product.'.format(err))
+                        response.append(woocomm.http_post(endpoint, val))
 
         if method == 'put':
             if isinstance(tmp_data, list):
                 response = []
 
                 for val in tmp_data:
-                    response = woocomm.http_put(endpoint, val)
+                    response.append(woocomm.http_put(endpoint, val))
 
         if method == 'get':
             with_offset = doc.get('with_offset', False)
@@ -389,7 +407,7 @@ class WorkflowHandler(object):
             data = self._get_data(doc_data.get('get_data_on'))
 
             if data and isinstance(data, list):
-                for data_item in data['results']:
+                for data_item in data:
                     self._handle_entity_save(doc, data_item)
 
             if data and isinstance(data, dict):

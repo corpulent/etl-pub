@@ -179,6 +179,7 @@
                             "description": "description",
                             "category_path": "category_path",
                             "attributes": "attributes",
+                            "woocomm_listing_id": "woocomm_listing_id",
                             "type": "type",
                             "ignored_parts": {}
                         }

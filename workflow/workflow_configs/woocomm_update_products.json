@@ -162,7 +162,24 @@
                     "endpoint": "products",
                     "get_data_on": "data",
                     "consumer_key": "ck_f1ffb2d1960a7e215d1c6aad53d827519c900dd0",
-                    "export_mapper": 122,
+                    "export_mapper": {
+                        "map": {
+                            "sku": "sku",
+                            "type": "type",
+                            "price": "regular_price",
+                            "title": "name",
+                            "images": "images",
+                            "status": "status",
+                            "quantity": "stock_quantity",
+                            "attributes": "attributes",
+                            "categories": "categories",
+                            "listing_id": "listing_id",
+                            "description": "description",
+                            "category_path": "category_path",
+                            "ignored_parts": {},
+                            "woocomm_listing_id": "id"
+                        }
+                    },
                     "consumer_secret": "cs_32af8fce5c55bcc7bd4d495911308668dfe1d3c1",
                     "generate_attributes": true,
                     "expects_response_code": [201, 200]
