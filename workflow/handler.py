@@ -211,6 +211,17 @@ class WorkflowHandler(object):
             else:
                 conn_etsy.create_listings(payload=self.data)
 
+    def _map_variables(self, var_list, data):
+        """Map values to variables in the car_list."""
+        vars_mapped = {}
+
+        for k, v in var_list:
+            jsonpath_expr = parse(v)
+            found_data = jsonpath_expr.find(data)
+            vars_mapped[k] = [match.value for match in found_data][0]
+        
+        return vars_mapped
+
     def _unit_action_connector_woocommerce(self, doc, offset=None):
         doc_data = doc['data']
         url = doc_data.get('url')
@@ -219,7 +230,6 @@ class WorkflowHandler(object):
         consumer_secret = doc_data.get('consumer_secret')
         expected_codes = doc_data.get('expects_response_code')
         endpoint = doc_data.get('endpoint')
-        store_data_on = doc_data.get('store_data_on')
         get_data_on = doc_data.get('get_data_on')
         steps = doc_data.get('steps')
         generate_attributes = doc_data.get('generate_attributes', False)
@@ -244,8 +254,9 @@ class WorkflowHandler(object):
                 for key, val in enumerate(doc_data_list):
                     doc_data_list[key] = woocomm._generate_custom_structure(val)
 
-            for key, val in enumerate(doc_data_list):
-                doc_data_list[key] = woocomm._generate_attributes(val)
+            if generate_attributes:
+                for key, val in enumerate(doc_data_list):
+                    doc_data_list[key] = woocomm._generate_attributes(val)
 
             if generate_variations:
                 for key, val in enumerate(doc_data_list):
@@ -282,11 +293,7 @@ class WorkflowHandler(object):
         if data:
             if doc_data.get('vars'):
                 var_list = doc_data.get('vars').items()
-
-                for k, v in var_list:
-                    jsonpath_expr = parse(v)
-                    found_data = jsonpath_expr.find(data)
-                    vars_mapped[k] = [match.value for match in found_data][0]
+                vars_mapped = self._map_variables(var_list, data[0]['doc_data'])
 
                 for k, v in vars_mapped.items():
                     endpoint = endpoint.replace("$%s" % k, str(v))
@@ -299,22 +306,23 @@ class WorkflowHandler(object):
                     response.append(woocomm.http_post(endpoint, val))
 
         if method == 'put':
-            response = woocomm.http_put(endpoint, tmp_data)
+            if isinstance(tmp_data, list):
+                response = []
+
+                for val in tmp_data:
+                    response = woocomm.http_put(endpoint, val)
 
         if method == 'get':
-            '''
-            if self.get_data(doc.get('store_data_on')) and method == 'get':
-                with_offset = doc.get('with_offset', False)
+            with_offset = doc.get('with_offset', False)
+            per_page = doc.get('per_page')
 
-                if with_offset:
-                    if offset is None:
-                        offset = 0
+            if with_offset:
+                if offset is None:
+                    offset = 0
 
-                    offset = offset + doc.get('per_page')
+                offset = offset + per_page
 
-                self._unit_action_connector_woocommerce(self.doc, offset=offset)
-            '''
-            response = woocomm.http_get(endpoint)
+            response = woocomm.http_get(endpoint, offset, per_page)
 
         if method == 'delete':
             response = woocomm.http_delete(endpoint)

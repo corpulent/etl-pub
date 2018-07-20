@@ -24,7 +24,7 @@ if __name__ == '__main__':
     workflow_data = {}
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    with open(os.path.join(dir_path, 'workflow/workflow_configs/woocomm_create_products.json')) as json_file:
+    with open(os.path.join(dir_path, 'workflow/workflow_configs/woocomm_create_products_variations.json')) as json_file:
         workflow_data = json.load(json_file)
 
     handler = WorkflowHandler(workflow_data)

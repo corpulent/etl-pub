@@ -6,7 +6,7 @@
             "operation": "read",
             "store_data_on": "data",
             "query": "page=1&page_size=1",
-            "jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyMDgyOTkwLCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzE5MTAxOTB9.BdqAL7nwBubbakILdnFke0IShHQ3sJ-FV-vNX8hjtSY",
+            "jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyMjcyNzQ3LCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzIwOTk5NDd9.Kjuy8le7WhA7E_komGK3A1Ope2YKxZn10rWSD1HDsO8",
             "org_id": 10,
             "steps": [{
                 "order": 0,
@@ -196,7 +196,7 @@
                                 "order": 0,
                                 "type": "entity",
                                 "data": {
-                                    "jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyMjA1NDEzLCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzIwMzI2MTN9.gHGGaLviRkQx2HK2pqxAX-J81mnuYW2dSoAzP5MSgqM",
+                                    "jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyMjcyNzQ3LCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzIwOTk5NDd9.Kjuy8le7WhA7E_komGK3A1Ope2YKxZn10rWSD1HDsO8",
                                     "org_id": 10,
                                     "merge": true,
                                     "classifiers": [],
