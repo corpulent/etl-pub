@@ -3,33 +3,43 @@
         "order": 0,
         "type": "entity",
 		"data": {
-            "query": "page=1&page_size=1",
+            "query_params": "",
             "operation": "read",
             "paginated": true,
             "store_data_on": "data",
-            "jwt_token": "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyMjcyNzQ3LCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzIwOTk5NDd9.Kjuy8le7WhA7E_komGK3A1Ope2YKxZn10rWSD1HDsO8",
-            "org_id": 10,
+            "jwt_token": "__JWT_TOKEN__",
+            "org_id": "__ORG_ID__",
             "steps": [{
                 "order": 0,
-                "type": "action_connector_woocommerce",
+                "type": "loop",
                 "data": {
-                    "url": "https://staging.joinmarrakesh.com",
-                    "vars": {
-                        "product_id": "$[*].woocomm_listing_id"
-                    },
-                    "steps": [],
-                    "method": "POST",
-                    "endpoint": "products/$product_id/variations/batch",
+                    "path": "$.doc_data",
                     "get_data_on": "data",
-                    "consumer_key": "ck_d8bbddae15cfc4f29a46ada4eae7609df19317a7",
-                    "export_mapper": {
-                        "map": {
-                          "create": "create"
+                    "store_data_on": "data",
+                    "steps": [{
+                        "order": 0,
+                        "type": "action_connector_woocommerce",
+                        "data": {
+                            "url": "__WOOCOMM_URL__",
+                            "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
+                            "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
+                            "vars": {
+                                "product_id": "$[*].woocomm_listing_id"
+                            },
+                            "steps": [],
+                            "method": "POST",
+                            "endpoint": "products/$product_id/variations/batch",
+                            "get_data_on": "data",
+                            "store_data_on": "data",
+                            "export_mapper": {
+                                "map": {
+                                "create": "create"
+                                }
+                            },
+                            "generate_variations": true,
+                            "expects_response_code": [201, 200]
                         }
-                    },
-                    "consumer_secret": "cs_5a20f0076cf0ee1d6489467c8f660880a7384fa0",
-                    "generate_variations": true,
-                    "expects_response_code": [201, 200]
+                    }]
                 }
             }]
         }

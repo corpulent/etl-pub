@@ -11,7 +11,7 @@
                 "order": 0,
                 "type": "loop",
                 "data": {
-                    "path": "$",
+                    "path": "$.doc_data",
                     "get_data_on": "immutable",
                     "store_data_on": "data",
                     "steps": [{
@@ -20,7 +20,7 @@
                         "data": {
                             "url": "/listings/$listing_id/inventory",
                             "vars": {
-                                "listing_id": "$.doc_data.listing_id"
+                                "listing_id": "$.listing_id"
                             },
                             "method": "GET",
                             "paginated": true,

@@ -102,15 +102,16 @@ class WooComm:
             data['type'] = 'variable'
 
             for product in data['products']:
-                for product_value in product['property_values']:
-                    attribute_name = product_value['property_name']
-                    
-                    if attribute_name not in attributes_map:
-                        attributes_map[attribute_name] = []
+                if type(product) is dict:
+                    for product_value in product['property_values']:
+                        attribute_name = product_value['property_name']
+                        
+                        if attribute_name not in attributes_map:
+                            attributes_map[attribute_name] = []
 
-                    for attribute_value in product_value['values']:
-                        if attribute_value not in attributes_map[attribute_name]:
-                            attributes_map[attribute_name].append(attribute_value)
+                        for attribute_value in product_value['values']:
+                            if attribute_value not in attributes_map[attribute_name]:
+                                attributes_map[attribute_name].append(attribute_value)
 
         if attributes_map:
             for attributes_map_key in attributes_map:
@@ -132,48 +133,49 @@ class WooComm:
         create_obj = []
 
         for product in data['products']:
-            if product['property_values']:
-                attributes_map = {}
+            if type(product) is dict:
+                if product['property_values']:
+                    attributes_map = {}
 
-                # Generate the attribute map to be used for all the
-                # offerings in this product set.
-                for product_value in product['property_values']:
-                    attribute_name = product_value['property_name']
-                
-                    if attribute_name not in attributes_map:
-                        attributes_map[attribute_name] = []
+                    # Generate the attribute map to be used for all the
+                    # offerings in this product set.
+                    for product_value in product['property_values']:
+                        attribute_name = product_value['property_name']
+                    
+                        if attribute_name not in attributes_map:
+                            attributes_map[attribute_name] = []
 
-                    for attribute_value in product_value['values']:
-                        if attribute_value not in attributes_map[attribute_name]:
-                            attributes_map[attribute_name].append(attribute_value)
+                        for attribute_value in product_value['values']:
+                            if attribute_value not in attributes_map[attribute_name]:
+                                attributes_map[attribute_name].append(attribute_value)
 
-                for product_offering in product['offerings']:
-                    variation = {
-                        'regular_price': '',
-                        'purchasable': True,
-                        'stock_quantity': 0,
-                        'attributes': []
-                    }
-                    cconverter = CurrencyConverter()
-                    amount = product_offering['price']['currency_formatted_raw']
-                    currency_code = product_offering['price']['currency_code']
-                    amount_in_usd = cconverter.convert(amount, currency_code, 'USD')
-                    D = decimal.Decimal
-                    cent = D('0.01')
-                    x = D(amount_in_usd)
-                    variation['regular_price'] = str(x.quantize(cent,rounding=decimal.ROUND_UP))
-                    variation['stock_quantity'] = product_offering['quantity']
+                    for product_offering in product['offerings']:
+                        variation = {
+                            'regular_price': '',
+                            'purchasable': True,
+                            'stock_quantity': 0,
+                            'attributes': [],
+                        }
+                        cconverter = CurrencyConverter()
+                        amount = product_offering['price']['currency_formatted_raw']
+                        currency_code = product_offering['price']['currency_code']
+                        amount_in_usd = cconverter.convert(amount, currency_code, 'USD')
+                        D = decimal.Decimal
+                        cent = D('0.01')
+                        x = D(amount_in_usd)
+                        variation['regular_price'] = str(x.quantize(cent,rounding=decimal.ROUND_UP))
+                        variation['stock_quantity'] = product_offering['quantity']
 
-                    for attribute in attributes_map:
-                        for attribute_value in attributes_map[attribute]:
-                            attribute_obj = {
-                                'name': attribute,
-                                'option': attribute_value
-                            }
+                        for attribute in attributes_map:
+                            for attribute_value in attributes_map[attribute]:
+                                attribute_obj = {
+                                    'name': attribute,
+                                    'option': attribute_value
+                                }
 
-                            variation['attributes'].append(attribute_obj)
+                                variation['attributes'].append(attribute_obj)
 
-                create_obj.append(variation)
+                    create_obj.append(variation)
 
         data['create'] = create_obj
 

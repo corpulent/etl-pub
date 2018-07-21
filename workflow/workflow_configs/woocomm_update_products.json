@@ -3,7 +3,7 @@
         "order": 0,
         "type": "entity",
 		"data": {
-            "query": "page=1&page_size=1",
+            "query_params": "",
             "steps": [{
                 "order": 0,
                 "type": "action_connector_woocommerce",

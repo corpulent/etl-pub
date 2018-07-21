@@ -3,42 +3,42 @@
 		"order": 0,
         "type": "action_connector_woocommerce",
         "data": {
-            "url": "https://staging.joinmarrakesh.com",
+            "url": "__WOOCOMM_URL__",
+            "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
+            "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
+            "method": "GET",
+            "offset": 0,
+            "endpoint": "products?vendor_id=177",
+            "paginated": true,
+            "per_page": 1,
+            "store_data_on": "immutable",
+            "expects_response_code": [200, 201],
             "steps": [{
                 "order": 0,
                 "type": "loop",
                 "data": {
                     "path": "$",
+                    "get_data_on": "immutable",
+                    "store_data_on": "data",
                     "steps": [{
                         "order": 0,
                         "type": "action_connector_woocommerce",
                         "data": {
-                            "url": "https://staging.joinmarrakesh.com",
+                            "url": "__WOOCOMM_URL__",
+                            "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
+                            "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
                             "vars": {
                                 "product_id": "$.id"
                             },
                             "method": "DELETE",
                             "endpoint": "products/$product_id?force=true",
                             "get_data_on": "data",
-                            "consumer_key": "ck_1f72e674a2521c385b378f7f0f88a7940b0fd952",
                             "store_data_on": "data",
-                            "consumer_secret": "cs_dbbcb1e195f1ce074346b8bf25fb4930199f6a16",
                             "expects_response_code": [404, 400, 200, 201]
                         }
-                    }],
-                    "get_data_on": "immutable",
-                    "store_data_on": "data"
+                    }]
                 }
-            }],
-            "method": "GET",
-            "offset": 0,
-            "endpoint": "products?vendor_id=102",
-            "per_page": 10,
-            "paginated": true,
-            "consumer_key": "ck_b6aeb851b944537b1e277a5739387b8a99d69844",
-            "store_data_on": "immutable",
-            "consumer_secret": "cs_a5fc8ca9cec1ed93bcb115f9bb3a5ed01183461c",
-            "expects_response_code": [200, 201]
+            }]
         }
 	}, {
         "order": 1,

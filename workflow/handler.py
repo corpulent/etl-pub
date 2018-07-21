@@ -98,7 +98,6 @@ class WorkflowHandler(object):
 
         response = response.json()
         next_set = response['links']['next']
-        # Need only a single result.
         local_data = response['results']
 
         self._store_data(local_data, doc_data['store_data_on'])
@@ -192,17 +191,17 @@ class WorkflowHandler(object):
                     url
                 )
 
-            for listings in listings_generator:
+            for result in listings_generator:
                 # In special cases save specific payloads into data, and
                 # everything else are the results.
                 try:
-                    if listings['type'] == 'ListingInventory':
-                        self._store_data(listings, doc_data.get('store_data_on'))
+                    if result['type'] == 'ListingInventory':
+                        self._store_data(result, doc_data.get('store_data_on'))
 
-                    if listings['type'] == 'Listing':
-                        self._store_data(listings['results'], doc_data.get('store_data_on'))
+                    if result['type'] == 'Listing':
+                        self._store_data(result['results'], doc_data.get('store_data_on'))
                 except KeyError as err:
-                    self._store_data(listings['results'], doc_data.get('store_data_on'))
+                    self._store_data(result['results'], doc_data.get('store_data_on'))
 
                 self._run_steps(steps)
 
@@ -234,6 +233,11 @@ class WorkflowHandler(object):
         
         return vars_mapped
 
+    def _make_paginated_woocomm_request(self, woocomm, endpoint, offset, per_page):
+        response = woocomm.http_get(endpoint, offset, per_page)
+
+        return response
+
     def _unit_action_connector_woocommerce(self, doc, offset=None):
         doc_data = doc['data']
         url = doc_data.get('url')
@@ -248,6 +252,7 @@ class WorkflowHandler(object):
         generate_variations = doc_data.get('generate_variations', False)
         tmp_data = False
         data = self._get_data(get_data_on)
+        response = {}
         woocomm = WooComm(
             doc,
             url=url,
@@ -257,90 +262,78 @@ class WorkflowHandler(object):
 
         if method in ['post', 'put']:
             custom = doc_data.get('custom')
-            doc_data_list = []
-
-            for key, val in enumerate(data):
-                doc_data_list.append(val['doc_data'])
+            formatted_object = data
 
             if custom:
-                for key, val in enumerate(doc_data_list):
-                    doc_data_list[key] = woocomm._generate_custom_structure(val)
+                formatted_object = woocomm._generate_custom_structure(formatted_object)
 
             if generate_attributes:
-                for key, val in enumerate(doc_data_list):
-                    doc_data_list[key] = woocomm._generate_attributes(val)
+                formatted_object = woocomm._generate_attributes(formatted_object)
 
             if generate_variations:
-                for key, val in enumerate(doc_data_list):
-                    doc_data_list[key] = woocomm._generate_variations(val)
+                formatted_object = woocomm._generate_variations(formatted_object)
 
             if doc_data.get('export_mapper'):
                 mapper = doc_data.get('export_mapper')
                 _map = mapper['map']
                 cconverter = CurrencyConverter()
-                mapped_list = []
+                amount = formatted_object['price']
+                currency_code = formatted_object['currency_code']
+                amount_in_usd = cconverter.convert(amount, currency_code, 'USD')
+                D = decimal.Decimal
+                cent = D('0.01')
+                x = D(amount_in_usd)
+                formatted_object['price'] = str(x.quantize(cent,rounding=decimal.ROUND_UP))
+                _map_copy = copy.copy(_map)
+                mapped_obj = form_doc(formatted_object, _map_copy)
 
-                for i in doc_data_list:
-                    amount = i['price']
-                    currency_code = i['currency_code']
-                    amount_in_usd = cconverter.convert(amount, currency_code, 'USD')
-                    D = decimal.Decimal
-                    cent = D('0.01')
-                    x = D(amount_in_usd)
-                    i['price'] = str(x.quantize(cent,rounding=decimal.ROUND_UP))
+                if 'ignored_parts' in mapped_obj:
+                    ignored_parts = mapped_obj.pop('ignored_parts')
+                    mapped_obj = {**mapped_obj, **ignored_parts}
 
-                    _map_copy = copy.copy(_map)
-                    mapped_obj = form_doc(i, _map_copy)
-
-                    if 'ignored_parts' in mapped_obj:
-                        ignored_parts = mapped_obj.pop('ignored_parts')
-                        mapped_obj = {**mapped_obj, **ignored_parts}
-
-                    mapped_list.append(mapped_obj)
-
-                tmp_data = mapped_list
+                tmp_data = mapped_obj
 
         # Because this happens here after the data gets mapped propely above,
         # the pagination of entities has to be one at a time.
-        if data:
-            if doc_data.get('vars'):
-                var_list = doc_data.get('vars').items()
-                vars_mapped = self._map_variables(var_list, data[0]['doc_data'])
+        if doc_data.get('vars'):
+            var_list = doc_data.get('vars').items()
+            vars_mapped = self._map_variables(var_list, data)
 
-                for k, v in vars_mapped.items():
-                    endpoint = endpoint.replace("$%s" % k, str(v))
+            for k, v in vars_mapped.items():
+                endpoint = endpoint.replace("$%s" % k, str(v))
 
         if method == 'post':
-            if isinstance(tmp_data, list):
-                response = []
-
-                for val in tmp_data:
-                    try:
-                        if not val['woocomm_listing_id']:
-                           raise KeyError('woocomm_listing_id is empty')
-                    except KeyError as err:
-                        print('{} woocomm_listing_id does not exist,'
-                            'creating a new product.'.format(err))
-                        response.append(woocomm.http_post(endpoint, val))
+            try:
+                if not tmp_data['woocomm_listing_id']:
+                    raise KeyError('woocomm_listing_id is empty')
+            except KeyError as err:
+                print('{} woocomm_listing_id does not exist,'
+                    'creating a new product.'.format(err))
+                response = woocomm.http_post(endpoint, tmp_data)
 
         if method == 'put':
-            if isinstance(tmp_data, list):
-                response = []
-
-                for val in tmp_data:
-                    response.append(woocomm.http_put(endpoint, val))
+            response = woocomm.http_put(endpoint, tmp_data)
 
         if method == 'get':
-            with_offset = doc.get('with_offset', False)
-            per_page = doc.get('per_page')
+            paginated = doc_data.get('paginated', False)
+            per_page = doc_data.get('per_page', 10)
 
-            if with_offset:
-                if offset is None:
-                    offset = 0
+            if paginated:
+                keep_paginating = True
 
-                offset = offset + per_page
+                while keep_paginating:
+                    response = self._make_paginated_woocomm_request(woocomm, endpoint, 0, per_page)
 
-            response = woocomm.http_get(endpoint, offset, per_page)
+                    if response:
+                        self._store_data(response, doc_data['store_data_on'])
+
+                        if steps:
+                            self._run_steps(steps)
+                    else:
+                        keep_paginating = False
+
+            else:
+                response = woocomm.http_get(endpoint, offset, per_page)
 
         if method == 'delete':
             response = woocomm.http_delete(endpoint)
@@ -348,16 +341,8 @@ class WorkflowHandler(object):
         if method == 'options':
             response = woocomm.http_options(endpoint)
 
-        if expected_codes:
-            expected_codes = [str(code) for code in expected_codes]
-
-        if isinstance(response, list):
-            self.http_response_data = []
-
-            for response_item in response:
-                #if response_item['status_code'] < 200 or response_item['status_code'] >= 300:
-                #    data = response_item.json()
-                self.http_response_data.append(response_item)
+        self.http_response_data = response
+        self._store_data(response, doc_data['store_data_on'])
 
         if steps:
             self._run_steps(steps)
@@ -421,12 +406,14 @@ class WorkflowHandler(object):
         data = self._get_data(doc_data['get_data_on'])
 
         if data and isinstance(data, list):
-            temp_data = [match.value for match in jsonpath_expr.find(data) if match.value][0]
+            for data_item in data:
+                temp_data = [match.value for match in jsonpath_expr.find(data_item) if match.value][0]
 
-            if temp_data:
-                for obj in temp_data:
-                    self._store_data(obj, doc_data['store_data_on'])
+                if temp_data:
+                    self._store_data(temp_data, doc_data['store_data_on'])
                     self._run_steps(steps)
+        else:
+            raise Exception('using a loop unit on a non list')
 
     def _unit_stop(self, doc):
         doc_data = doc['data']
