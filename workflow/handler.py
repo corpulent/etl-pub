@@ -147,9 +147,17 @@ class WorkflowHandler(object):
         if get_data_on == 'http_response_data':
             return self.http_response_data
 
-    def _store_data(self, data, data_source):
+    def _store_data(self, data, data_source, merge_data=False):
+        if merge_data:
+            merge = {
+                'merged': data
+            }
+
         if data_source == 'data':
-            self.data = data
+            if merge_data:
+                self.data = {**self.data, **merge}
+            else:
+                self.data = data
 
         if data_source == 'immutable':
             self.immutable = data
@@ -250,6 +258,8 @@ class WorkflowHandler(object):
         steps = doc_data.get('steps')
         generate_attributes = doc_data.get('generate_attributes', False)
         generate_variations = doc_data.get('generate_variations', False)
+        merge_data = doc_data.get('merge_data', False)
+        do_hacky_shit = doc_data.get('do_hacky_shit', False)
         tmp_data = False
         data = self._get_data(get_data_on)
         response = {}
@@ -293,6 +303,18 @@ class WorkflowHandler(object):
 
                 tmp_data = mapped_obj
 
+        # Hack!
+        if do_hacky_shit:
+            if method == 'delete':
+                match = re.search(r'\d+$', data['_links']['up'][0]['href'])
+
+                try:
+                    match = re.search(r'\d+$', data['_links']['up'][0]['href'])
+                    data['product_id'] = int(match.group())
+                except KeyError as err:
+                    pass
+
+
         # Because this happens here after the data gets mapped propely above,
         # the pagination of entities has to be one at a time.
         if doc_data.get('vars'):
@@ -302,21 +324,24 @@ class WorkflowHandler(object):
             for k, v in vars_mapped.items():
                 endpoint = endpoint.replace("$%s" % k, str(v))
 
+        # Making a POST only if woocomm_listing_id is not set.
         if method == 'post':
             try:
                 if not tmp_data['woocomm_listing_id']:
-                    raise KeyError('woocomm_listing_id is empty')
+                    raise KeyError()
             except KeyError as err:
-                print('{} woocomm_listing_id does not exist,'
-                    'creating a new product.'.format(err))
+                print("{} KeyError, goot go with the POST request...".format(str(err)))
                 response = woocomm.http_post(endpoint, tmp_data)
 
         if method == 'put':
             response = woocomm.http_put(endpoint, tmp_data)
 
         if method == 'get':
-            paginated = doc_data.get('paginated', False)
-            per_page = doc_data.get('per_page', 10)
+            print("woocomm get")
+            print(endpoint)
+            paginated = doc_data.get('paginated', None)
+            per_page = doc_data.get('per_page', None)
+            offset = doc_data.get('offset', None)
 
             if paginated:
                 keep_paginating = True
@@ -325,7 +350,7 @@ class WorkflowHandler(object):
                     response = self._make_paginated_woocomm_request(woocomm, endpoint, 0, per_page)
 
                     if response:
-                        self._store_data(response, doc_data['store_data_on'])
+                        self._store_data(response, doc_data['store_data_on'], merge_data)
 
                         if steps:
                             self._run_steps(steps)
@@ -336,13 +361,14 @@ class WorkflowHandler(object):
                 response = woocomm.http_get(endpoint, offset, per_page)
 
         if method == 'delete':
+            print(endpoint)
             response = woocomm.http_delete(endpoint)
 
         if method == 'options':
             response = woocomm.http_options(endpoint)
 
         self.http_response_data = response
-        self._store_data(response, doc_data['store_data_on'])
+        self._store_data(response, doc_data['store_data_on'], merge_data)
 
         if steps:
             self._run_steps(steps)
@@ -400,20 +426,39 @@ class WorkflowHandler(object):
 
     def _unit_loop(self, doc):
         doc_data = doc['data']
+        loop_path = doc_data.get('loop_path', '$')
+        loop_path_jsonpath_expr = parse(loop_path)
         path = doc_data.get('path', '$')
         steps = doc_data.get('steps', False)
+        merge_data = doc_data.get('merge_data', False)
         jsonpath_expr = parse(path)
         data = self._get_data(doc_data['get_data_on'])
+        loop_data = data
 
-        if data and isinstance(data, list):
-            for data_item in data:
-                temp_data = [match.value for match in jsonpath_expr.find(data_item) if match.value][0]
+        print(json.dumps(loop_data))
+
+        try:
+            loop_data = [match.value for match in loop_path_jsonpath_expr.find(loop_data) if match.value][0]
+        except IndexError as err:
+            print('path {} not found in the data set'.format(path))
+            pass
+
+        if loop_data and isinstance(loop_data, list):
+            for data_item in loop_data:
+
+                print(json.dumps(data_item))
+
+                try:
+                    temp_data = [match.value for match in jsonpath_expr.find(data_item) if match.value][0]
+                except IndexError as err:
+                    print('path {} not found in the data set'.format(path))
+                    sys.exit(1)
 
                 if temp_data:
-                    self._store_data(temp_data, doc_data['store_data_on'])
+                    self._store_data(temp_data, doc_data['store_data_on'], merge_data)
                     self._run_steps(steps)
         else:
-            raise Exception('using a loop unit on a non list')
+            pass
 
     def _unit_stop(self, doc):
         doc_data = doc['data']

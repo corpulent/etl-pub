@@ -23,7 +23,7 @@
                             "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
                             "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
                             "method": "POST",
-                            "endpoint": "products?vendor_id=177",
+                            "endpoint": "products?vendor_id=__WOOCOMM_VENDOR_ID__",
                             "get_data_on": "data",
                             "store_data_on": "data",
                             "generate_attributes": true,

@@ -1,5 +1,6 @@
 import json
 import decimal
+from re import sub
 
 from currency_converter import CurrencyConverter
 from woocommerce import API as WooCommAPI
@@ -157,7 +158,7 @@ class WooComm:
                             'attributes': [],
                         }
                         cconverter = CurrencyConverter()
-                        amount = product_offering['price']['currency_formatted_raw']
+                        amount = decimal.Decimal(sub(r'[^\d.]', '', product_offering['price']['currency_formatted_raw']))
                         currency_code = product_offering['price']['currency_code']
                         amount_in_usd = cconverter.convert(amount, currency_code, 'USD')
                         D = decimal.Decimal
@@ -182,9 +183,10 @@ class WooComm:
         return data
 
     def http_get(self, endpoint, offset, per_page):
-        if offset:
+        if offset and per_page:
             endpoint = "{}&per_page={}&offset={}".format(endpoint, per_page, offset)
-        else:
+        
+        if per_page:
             endpoint = "{}&per_page={}".format(endpoint, per_page)
 
         response = self.wcapi.get(endpoint)

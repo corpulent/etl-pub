@@ -1,0 +1,77 @@
+{
+	"steps": [{
+        "order": 0,
+        "type": "entity",
+		"data": {
+            "query_params": "",
+            "operation": "read",
+            "paginated": true,
+            "store_data_on": "data",
+            "jwt_token": "__JWT_TOKEN__",
+            "org_id": "__ORG_ID__",
+            "steps": [{
+                "order": 0,
+                "type": "loop",
+                "data": {
+                    "path": "$.doc_data",
+                    "get_data_on": "data",
+                    "store_data_on": "data",
+                    "steps": [{
+                        "order": 0,
+                        "type": "action_connector_woocommerce",
+                        "data": {
+                            "url": "__WOOCOMM_URL__",
+                            "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
+                            "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
+                            "vars": {
+                                "product_id": "$.woocomm_listing_id"
+                            },
+                            "method": "GET",
+                            "endpoint": "products/$product_id/variations",
+                            "get_data_on": "data",
+                            "merge_data": true,
+                            "store_data_on": "data",
+                            "expects_response_code": [201, 200],
+                            "steps": [{
+                                "order": 0,
+                                "type": "loop",
+                                "data": {
+                                    "path": "$",
+                                    "loop_path": "$.merged",
+                                    "get_data_on": "data",
+                                    "store_data_on": "immutable",
+                                    "steps": [{
+                                        "do_hacky_shit": true,
+                                        "order": 0,
+                                        "type": "action_connector_woocommerce",
+                                        "data": {
+                                            "url": "__WOOCOMM_URL__",
+                                            "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
+                                            "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
+                                            "vars": {
+                                                "variation_id": "$.id",
+                                                "product_id": "$.product_id"
+                                            },
+                                            "method": "DELETE",
+                                            "endpoint": "products/$product_id/variations/$variation_id",
+                                            "get_data_on": "immutable",
+                                            "store_data_on": "data",
+                                            "expects_response_code": [201, 200],
+                                            "steps": []
+                                        }
+                                    }]
+                                }
+                            }]
+                        }
+                    }]
+                }
+            }]
+        }
+	}, {
+        "order": 1,
+        "type": "stop",
+		"data": {
+            "return_response_body": true
+        }
+	}]
+}

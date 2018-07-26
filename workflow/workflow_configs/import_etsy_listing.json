@@ -3,7 +3,7 @@
 		"order": 0,
 		"type": "connector_etsy",
 		"data": {
-			"url": "/shops/DevSandbox/listings/inactive",
+			"url": "__ETSY_SHOP_URL__",
 			"steps": [{
 				"order": 0,
 				"type": "entity",
