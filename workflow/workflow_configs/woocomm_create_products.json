@@ -4,7 +4,7 @@
         "type": "entity",
 		"data": {
             "operation": "read",
-            "store_data_on": "data",
+            "store_data_on": "entities",
             "query_params": "",
             "jwt_token": "__JWT_TOKEN__",
             "org_id": "__ORG_ID__",
@@ -13,8 +13,8 @@
                 "type": "loop",
                 "data": {
                     "path": "$.doc_data",
-                    "get_data_on": "data",
-                    "store_data_on": "data",
+                    "get_data_on": "entities",
+                    "store_data_on": "entity",
                     "steps": [{
                         "order": 0,
                         "type": "action_connector_woocommerce",
@@ -24,8 +24,8 @@
                             "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
                             "method": "POST",
                             "endpoint": "products?vendor_id=__WOOCOMM_VENDOR_ID__",
-                            "get_data_on": "data",
-                            "store_data_on": "data",
+                            "get_data_on": "entity",
+                            "store_data_on": "entity.woocomm_save_response",
                             "generate_attributes": true,
                             "generate_variations": false,
                             "expects_response_code": [201, 200],
@@ -207,7 +207,7 @@
                                     "attachments": [],
                                     "compound": true,
                                     "operation": "create",
-                                    "get_data_on": "data",
+                                    "get_data_on": "entity.woocomm_save_response",
                                     "import_mapper_id": "__IMPORT_MAPPER_ID__",
                                     "unique_fields": ["listing_id"]
                                 }
