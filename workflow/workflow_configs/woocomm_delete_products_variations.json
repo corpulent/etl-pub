@@ -6,7 +6,7 @@
             "query_params": "",
             "operation": "read",
             "paginated": true,
-            "store_data_on": "data",
+            "store_data_on": "entities",
             "jwt_token": "__JWT_TOKEN__",
             "org_id": "__ORG_ID__",
             "steps": [{
@@ -14,8 +14,8 @@
                 "type": "loop",
                 "data": {
                     "path": "$.doc_data",
-                    "get_data_on": "data",
-                    "store_data_on": "data",
+                    "get_data_on": "entities",
+                    "store_data_on": "entity",
                     "steps": [{
                         "order": 0,
                         "type": "action_connector_woocommerce",
@@ -28,23 +28,21 @@
                             },
                             "method": "GET",
                             "endpoint": "products/$product_id/variations",
-                            "get_data_on": "data",
-                            "merge_data": true,
-                            "store_data_on": "data",
+                            "get_data_on": "entity",
+                            "store_data_on": "variations",
                             "expects_response_code": [201, 200],
                             "steps": [{
                                 "order": 0,
                                 "type": "loop",
                                 "data": {
                                     "path": "$",
-                                    "loop_path": "$.merged",
-                                    "get_data_on": "data",
-                                    "store_data_on": "immutable",
+                                    "get_data_on": "variations",
+                                    "store_data_on": "variation",
                                     "steps": [{
-                                        "do_hacky_shit": true,
                                         "order": 0,
                                         "type": "action_connector_woocommerce",
                                         "data": {
+                                            "do_hacky_shit": true,
                                             "url": "__WOOCOMM_URL__",
                                             "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
                                             "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
@@ -54,8 +52,8 @@
                                             },
                                             "method": "DELETE",
                                             "endpoint": "products/$product_id/variations/$variation_id",
-                                            "get_data_on": "immutable",
-                                            "store_data_on": "data",
+                                            "get_data_on": "variation",
+                                            "store_data_on": "final_response",
                                             "expects_response_code": [201, 200],
                                             "steps": []
                                         }
