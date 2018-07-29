@@ -6,7 +6,7 @@
             "query_params": "",
             "operation": "read",
             "paginated": true,
-            "store_data_on": "data",
+            "store_data_on": "entities",
             "jwt_token": "__JWT_TOKEN__",
             "org_id": "__ORG_ID__",
             "steps": [{
@@ -14,8 +14,8 @@
                 "type": "loop",
                 "data": {
                     "path": "$.doc_data",
-                    "get_data_on": "data",
-                    "store_data_on": "data",
+                    "get_data_on": "entities",
+                    "store_data_on": "entity",
                     "steps": [{
                         "order": 0,
                         "type": "action_connector_woocommerce",
@@ -29,11 +29,11 @@
                             "steps": [],
                             "method": "POST",
                             "endpoint": "products/$product_id/variations/batch",
-                            "get_data_on": "data",
-                            "store_data_on": "data",
+                            "get_data_on": "entity",
+                            "store_data_on": "http_response",
                             "export_mapper": {
                                 "map": {
-                                "create": "create"
+                                    "create": "create"
                                 }
                             },
                             "generate_variations": true,
