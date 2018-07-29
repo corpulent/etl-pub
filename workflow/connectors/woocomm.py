@@ -1,6 +1,8 @@
+import os
 import json
 import decimal
 from re import sub
+from urllib.parse import urlparse
 
 from currency_converter import CurrencyConverter
 from woocommerce import API as WooCommAPI
@@ -34,7 +36,8 @@ class WooComm:
     def _log_event(self, event):
         print(event)
 
-    def _generate_custom_structure(self, data):
+    def _generate_custom_structure(self, data, **kwargs):
+        image_size = kwargs.get('image_size')
         custom = self.doc_data.get('custom')
         images = custom['images']
         category_mapper = custom['category_mapper']
@@ -52,7 +55,7 @@ class WooComm:
 
                 for image_item in data['images']:
                     listing_image_id = image_item['listing_image_id']
-                    image_url = image_item['url_fullxfull'].replace('https', 'http')
+                    image_url = image_item[image_size].replace('https', 'http')
 
                     try:
                         if listing_image_id == data['main_image']['listing_image_id']:
@@ -63,7 +66,14 @@ class WooComm:
                     except KeyError as e:
                         pass
 
-                    image_list.append({'src': image_url, 'position': position_counter})
+                    a = urlparse(image_url)
+                    image_name = os.path.basename(a.path)
+
+                    image_list.append({
+                        'src': image_url,
+                        'position': position_counter,
+                        "name": image_name
+                    })
                     position_counter += 1
 
                 data['images'] = image_list

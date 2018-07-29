@@ -1,0 +1,46 @@
+{
+	"steps": [{
+        "order": 0,
+        "type": "entity",
+        "data": {
+            "jwt_token": "__JWT_TOKEN__",
+            "org_id": "__ORG_ID__",
+            "operation": "read",
+            "store_data_on": "intities",
+            "steps": [{
+                "order": 0,
+                "type": "loop",
+                "data": {
+                    "path": "$.doc_data",
+                    "get_data_on": "intities",
+                    "store_data_on": "intity",
+                    "steps": [{
+                        "order": 0,
+                        "type": "entity",
+                        "data": {
+                            "jwt_token": "__JWT_TOKEN__",
+                            "org_id": "__ORG_ID__",
+                            "merge": true,
+                            "classifiers": [],
+                            "attachments": [],
+                            "compound": true,
+                            "operation": "create",
+                            "get_data_on": "intity",
+                            "import_mapper_id": "__IMPORT_MAPPER_ID__",
+                            "unique_fields": ["listing_id"],
+                            "ignore_results": true
+                        }
+                    }]
+                }
+            }]
+        }
+	}, {
+		"order": 1,
+		"type": "stop",
+		"data": {
+			"name": "Stop",
+			"response": true,
+			"return_response_body": false
+		}
+	}]
+}

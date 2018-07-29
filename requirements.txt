@@ -4,3 +4,4 @@ requests-oauthlib==0.8.0
 jsonpath-ng==1.4.3
 woocommerce==1.2.1
 CurrencyConverter==0.13.3
+wordpress-api==1.2.7

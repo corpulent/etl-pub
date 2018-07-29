@@ -8,7 +8,9 @@ import boto3
 import copy
 import decimal
 import requests
-
+import operator
+from collections import defaultdict
+from functools import reduce
 from jsonpath_ng import parse
 from currency_converter import CurrencyConverter
 
@@ -18,6 +20,7 @@ from requests import (
     RequestException
 )
 
+from .connectors.wordpress.api import API
 from .connectors.etsy import main
 from .connectors.woocomm import WooComm
 
@@ -30,15 +33,14 @@ ENDPOINT_ROOT_URL = 'http://localhost:9001'
 
 class WorkflowHandler(object):
     def __init__(self, workflow_doc, **kwargs):
+        infinitedict = lambda: defaultdict(infinitedict)
+
         self.workflow_doc = workflow_doc
-        self.data = None
-        self.immutable = None
-        self.http_response_data = None
+        self.data = infinitedict()
         self.steps = self._sort_steps(self.workflow_doc.get('steps'))
         self.unit_handlers = self._get_unit_handlers()
         self.source = self.workflow_doc.get('source', -1)
         self.events = []
-
         self.return_response_body = True
 
     def _handle_entity_save(self, doc, data):
@@ -100,7 +102,7 @@ class WorkflowHandler(object):
         next_set = response['links']['next']
         local_data = response['results']
 
-        self._store_data(local_data, doc_data['store_data_on'])
+        self._put_data(local_data, doc_data['store_data_on'])
 
         steps = doc_data.get('steps', False)
 
@@ -137,33 +139,23 @@ class WorkflowHandler(object):
 
             self.run(steps)
 
+    def _dict_put(self, keys, item):
+        keys = keys.split(".")
+        lastplace = reduce(operator.getitem, keys[:-1], self.data)
+        lastplace[keys[-1]] = item
+
+    def _dict_get(self, keys):
+        try:
+            keys = keys.split(".")
+            return reduce(operator.getitem, keys, self.data)
+        except AttributeError as err:
+            pass
+
     def _get_data(self, get_data_on):
-        if get_data_on == 'data':
-            return self.data
+        return self._dict_get(get_data_on)
 
-        if get_data_on == 'immutable':
-            return self.immutable
-
-        if get_data_on == 'http_response_data':
-            return self.http_response_data
-
-    def _store_data(self, data, data_source, merge_data=False):
-        if merge_data:
-            merge = {
-                'merged': data
-            }
-
-        if data_source == 'data':
-            if merge_data:
-                self.data = {**self.data, **merge}
-            else:
-                self.data = data
-
-        if data_source == 'immutable':
-            self.immutable = data
-
-        if data_source == 'http_response_data':
-            self.http_response_data = data
+    def _put_data(self, data, path):
+        self._dict_put(path, data)
 
     def process_etsy_request(self, conn_etsy, **kwargs):
         """Process Etsy request."""
@@ -204,12 +196,12 @@ class WorkflowHandler(object):
                 # everything else are the results.
                 try:
                     if result['type'] == 'ListingInventory':
-                        self._store_data(result, doc_data.get('store_data_on'))
+                        self._put_data(result, doc_data.get('store_data_on'))
 
                     if result['type'] == 'Listing':
-                        self._store_data(result['results'], doc_data.get('store_data_on'))
+                        self._put_data(result['results'], doc_data.get('store_data_on'))
                 except KeyError as err:
-                    self._store_data(result['results'], doc_data.get('store_data_on'))
+                    self._put_data(result['results'], doc_data.get('store_data_on'))
 
                 self._run_steps(steps)
 
@@ -246,6 +238,45 @@ class WorkflowHandler(object):
 
         return response
 
+    def _unit_action_connector_wordpress(self, doc):
+        doc_data = doc['data']
+        method = doc_data.get('method', 'get').lower()
+        wp_url = doc_data.get('wp_url')
+        wp_user = doc_data.get('wp_user')
+        wp_pass = doc_data.get('wp_pass')
+        consumer_key = doc_data.get('consumer_key')
+        consumer_secret = doc_data.get('consumer_secret')
+        expected_codes = doc_data.get('expects_response_code')
+        endpoint = doc_data.get('endpoint')
+        get_data_on = doc_data.get('get_data_on')
+        steps = doc_data.get('steps')
+        data = self._get_data(get_data_on)
+        response = {}
+        wpapi = API(
+            url=wp_url,
+            api="wp-json",
+            version='wp/v2',
+            wp_user=wp_user,
+            wp_pass=wp_pass,
+            consumer_key=consumer_key,
+            consumer_secret=consumer_secret,
+            basic_auth=True,
+            user_auth=True,
+        )
+
+        if doc_data.get('vars'):
+            var_list = doc_data.get('vars').items()
+            vars_mapped = self._map_variables(var_list, data)
+
+            for k, v in vars_mapped.items():
+                endpoint = endpoint.replace("$%s" % k, str(v))
+
+        if method == 'delete':
+            response = wpapi.delete(endpoint)
+
+        if steps:
+            self._run_steps(steps)
+
     def _unit_action_connector_woocommerce(self, doc, offset=None):
         doc_data = doc['data']
         url = doc_data.get('url')
@@ -258,7 +289,7 @@ class WorkflowHandler(object):
         steps = doc_data.get('steps')
         generate_attributes = doc_data.get('generate_attributes', False)
         generate_variations = doc_data.get('generate_variations', False)
-        merge_data = doc_data.get('merge_data', False)
+        image_size = doc_data.get('image_size', 'url_fullxfull')
         do_hacky_shit = doc_data.get('do_hacky_shit', False)
         tmp_data = False
         data = self._get_data(get_data_on)
@@ -275,7 +306,10 @@ class WorkflowHandler(object):
             formatted_object = data
 
             if custom:
-                formatted_object = woocomm._generate_custom_structure(formatted_object)
+                formatted_object = woocomm._generate_custom_structure(
+                    formatted_object,
+                    image_size=image_size
+                )
 
             if generate_attributes:
                 formatted_object = woocomm._generate_attributes(formatted_object)
@@ -337,8 +371,6 @@ class WorkflowHandler(object):
             response = woocomm.http_put(endpoint, tmp_data)
 
         if method == 'get':
-            print("woocomm get")
-            print(endpoint)
             paginated = doc_data.get('paginated', None)
             per_page = doc_data.get('per_page', None)
             offset = doc_data.get('offset', None)
@@ -350,7 +382,7 @@ class WorkflowHandler(object):
                     response = self._make_paginated_woocomm_request(woocomm, endpoint, 0, per_page)
 
                     if response:
-                        self._store_data(response, doc_data['store_data_on'], merge_data)
+                        self._put_data(response, doc_data['store_data_on'])
 
                         if steps:
                             self._run_steps(steps)
@@ -361,14 +393,13 @@ class WorkflowHandler(object):
                 response = woocomm.http_get(endpoint, offset, per_page)
 
         if method == 'delete':
-            print(endpoint)
             response = woocomm.http_delete(endpoint)
 
         if method == 'options':
             response = woocomm.http_options(endpoint)
 
         self.http_response_data = response
-        self._store_data(response, doc_data['store_data_on'], merge_data)
+        self._put_data(response, doc_data['store_data_on'])
 
         if steps:
             self._run_steps(steps)
@@ -430,24 +461,18 @@ class WorkflowHandler(object):
         loop_path_jsonpath_expr = parse(loop_path)
         path = doc_data.get('path', '$')
         steps = doc_data.get('steps', False)
-        merge_data = doc_data.get('merge_data', False)
         jsonpath_expr = parse(path)
         data = self._get_data(doc_data['get_data_on'])
         loop_data = data
 
-        print(json.dumps(loop_data))
-
         try:
             loop_data = [match.value for match in loop_path_jsonpath_expr.find(loop_data) if match.value][0]
         except IndexError as err:
-            print('path {} not found in the data set'.format(path))
+            print('path {} not found in the data set'.format(loop_path))
             pass
 
         if loop_data and isinstance(loop_data, list):
             for data_item in loop_data:
-
-                print(json.dumps(data_item))
-
                 try:
                     temp_data = [match.value for match in jsonpath_expr.find(data_item) if match.value][0]
                 except IndexError as err:
@@ -455,7 +480,7 @@ class WorkflowHandler(object):
                     sys.exit(1)
 
                 if temp_data:
-                    self._store_data(temp_data, doc_data['store_data_on'], merge_data)
+                    self._put_data(temp_data, doc_data['store_data_on'])
                     self._run_steps(steps)
         else:
             pass
@@ -473,6 +498,8 @@ class WorkflowHandler(object):
             run_steps = passed_steps
 
         for idx, unit_item in enumerate(run_steps):
-            print("Running step {}, type {}...".format(idx, unit_item['type']))
+            print("============")
+            print("============> Running STEP {}, TYPE {}...".format(idx, unit_item['type']))
+            print("============")
 
             self._run_units(unit_item)
