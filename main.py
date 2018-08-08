@@ -30,16 +30,22 @@ if __name__ == '__main__':
     woocomm_consumer_secret = "cs_c4c64b92ffe707ab42ba9da2ae908b0a1983fa8c"
     woocomm_url = "https://staging.joinmarrakesh.com"
 
+    # Basic authentication with the admin user.
+    # This plugin needs to be installed on the
+    # wordpress end https://github.com/WP-API/Basic-Auth
+    wp_user = "dev_admin"
+    wp_pass= "Sasquatch1492"
+
     etsy_shop_url = "/shops/spapla/listings/active"
     etsy_oauth_token = "77f72d2fa194c3193cd2b5f2ef695b"
     etsy_oauth_token_secret = "e62d628635"
     etsy_consumer_key = "rmqw209x8t1zzvaft9hfa0pc"
     etsy_consumer_secret = "9fyavx5q0d"
-    jwt_token = "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyNjk0NDA2LCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzI1MjE2MDZ9.3n4PgBLKCtkBCHm2VOS8kZPLefik93spRV5kdhfif7c"
+    jwt_token = "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyOTYzNjQ0LCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzI3OTA4NDR9.sZbywG6So_GyTOdSAmO9KKj-GdLimXLaqxYl88km3M8"
     org_id = "10"
-    import_mapper_id = "3"
+    import_mapper_id = "2"
 
-    with open(os.path.join(dir_path, 'workflow/workflow_configs/woocomm_delete_products.json')) as json_file:
+    with open(os.path.join(dir_path, 'workflow/workflow_configs/woocomm_create_products_variations.json')) as json_file:
         workflow_data = json.load(json_file)
 
     workflow_data_json = json.dumps(workflow_data)
@@ -58,6 +64,10 @@ if __name__ == '__main__':
     workflow_data_json = re.sub(r'__WOOCOMM_URL__', woocomm_url, workflow_data_json)
     workflow_data_json = re.sub(r'__WOOCOMM_CONSUMER_KEY__', woocomm_consumer_key, workflow_data_json)
     workflow_data_json = re.sub(r'__WOOCOMM_CONSUMER_SECRET__', woocomm_consumer_secret, workflow_data_json)
+
+    workflow_data_json = re.sub(r'__WP_URL__', woocomm_url, workflow_data_json)
+    workflow_data_json = re.sub(r'__WP_USER__', wp_user, workflow_data_json)
+    workflow_data_json = re.sub(r'__WP_PASS__', wp_pass, workflow_data_json)
 
     handler = WorkflowHandler(json.loads(workflow_data_json))
 
