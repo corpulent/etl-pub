@@ -25,25 +25,25 @@ if __name__ == '__main__':
     workflow_data = {}
     dir_path = os.path.dirname(os.path.realpath(__file__))
     
-    woocomm_vendor_id = "64"
-    woocomm_consumer_key = "ck_5e7085a0f3eb541fb145bb8342b01544c3587732"
-    woocomm_consumer_secret = "cs_c4c64b92ffe707ab42ba9da2ae908b0a1983fa8c"
-    woocomm_url = "https://staging.joinmarrakesh.com"
+    woocomm_vendor_id = ""
+    woocomm_consumer_key = ""
+    woocomm_consumer_secret = ""
+    woocomm_url = ""
 
     # Basic authentication with the admin user.
     # This plugin needs to be installed on the
     # wordpress end https://github.com/WP-API/Basic-Auth
-    wp_user = "dev_admin"
-    wp_pass= "Sasquatch1492"
+    wp_user = ""
+    wp_pass= ""
 
     etsy_shop_url = "/shops/spapla/listings/active"
-    etsy_oauth_token = "77f72d2fa194c3193cd2b5f2ef695b"
-    etsy_oauth_token_secret = "e62d628635"
-    etsy_consumer_key = "rmqw209x8t1zzvaft9hfa0pc"
-    etsy_consumer_secret = "9fyavx5q0d"
-    jwt_token = "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xIiwiZXhwIjoxNTMyOTYzNjQ0LCJlbWFpbCI6InRlc3RfdXNlcl8zQHRlc3QuY29tIiwib3JpZ19pYXQiOjE1MzI3OTA4NDR9.sZbywG6So_GyTOdSAmO9KKj-GdLimXLaqxYl88km3M8"
-    org_id = "10"
-    import_mapper_id = "2"
+    etsy_oauth_token = ""
+    etsy_oauth_token_secret = ""
+    etsy_consumer_key = ""
+    etsy_consumer_secret = ""
+    jwt_token = ""
+    org_id = ""
+    import_mapper_id = ""
 
     with open(os.path.join(dir_path, 'workflow/workflow_configs/woocomm_create_products_variations.json')) as json_file:
         workflow_data = json.load(json_file)
