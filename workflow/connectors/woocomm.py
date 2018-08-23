@@ -229,7 +229,6 @@ class WooComm:
         if isinstance(temp_data, list):
             for req_data in temp_data:
                 endpoint = "{0}/{1}".format(endpoint, req_data['id'])
-
                 response = self.wcapi.put(endpoint, req_data)
 
                 ret.append({

@@ -3,12 +3,89 @@
         "order": 0,
         "type": "entity",
 		"data": {
-            "query_params": "",
+            "operation": "read",
+            "store_data_on": "entity",
+            "entity_id": "__ENTITY_ID__",
+            "jwt_token": "__JWT_TOKEN__",
+            "org_id": "__ORG_ID__",
             "steps": [{
                 "order": 0,
                 "type": "action_connector_woocommerce",
                 "data": {
-                    "url": "https://staging.joinmarrakesh.com",
+                    "url": "__WOOCOMM_URL__",
+                    "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
+                    "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
+                    "vars": {
+                        "product_id": "$[*].woocomm_listing_id"
+                    },
+                    "method": "GET",
+                    "endpoint": "products/$product_id",
+                    "get_data_on": "entity",
+                    "store_data_on": "entity.woo_comm_object",
+                    "expects_response_code": [200],
+                    "steps": [{
+                        "order": 0,
+                        "type": "loop",
+                        "data": {
+                            "path": "$",
+                            "loop_path": "$.images",
+                            "get_data_on": "entity.woo_comm_object",
+                            "store_data_on": "entity.woo_comm_object.image_to_delete",
+                            "steps": [{
+                                "order": 0,
+                                "type": "action_connector_wordpress",
+                                "data": {
+                                    "wp_url": "__WP_URL__",
+                                    "wp_user": "__WP_USER__",
+                                    "wp_pass": "__WP_PASS__",
+                                    "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
+                                    "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
+                                    "vars": {
+                                        "media_id": "$.id"
+                                    },
+                                    "method": "DELETE",
+                                    "endpoint": "media/$media_id?force=true",
+                                    "get_data_on": "entity.woo_comm_object.image_to_delete",
+                                    "store_data_on": "ignore",
+                                    "expects_response_code": [404, 400, 200, 201]
+                                }
+                            }]
+                        }
+                    }]
+                }
+            }, {
+                "order": 1,
+                "type": "action_connector_woocommerce",
+                "data": {
+                    "url": "__WOOCOMM_URL__",
+                    "consumer_key": "__WOOCOMM_CONSUMER_KEY__",
+                    "consumer_secret": "__WOOCOMM_CONSUMER_SECRET__",
+                    "method": "PUT",
+                    "endpoint": "products",
+                    "get_data_on": "entity",
+                    "store_data_on": "entity.woocomm_save_response",
+                    "generate_attributes": true,
+                    "generate_variations": false,
+                    "expects_response_code": [201, 200],
+                    "export_mapper": {
+                        "map": {
+                            "sku": "sku",
+                            "price": "regular_price",
+                            "title": "name",
+                            "images": "images",
+                            "status": "status",
+                            "quantity": "stock_quantity",
+                            "categories": "categories",
+                            "description": "description",
+                            "category_path": "category_path",
+                            "attributes": "attributes",
+                            "woocomm_listing_id": "id",
+                            "type": "type",
+                            "ignored_parts": {
+                                "vendor_id": "__WOOCOMM_VENDOR_ID__"
+                            }
+                        }
+                    },
                     "custom": {
                         "images": "etsy",
                         "category_mapper": {
@@ -157,37 +234,9 @@
                             "Clothing, Womens's Clothing, Shirts, T-shirts": 453,
                             "Clothing, Unisex Kid's Clothing, Unisex Baby Clothing": 500
                         }
-                    },
-                    "method": "PUT",
-                    "endpoint": "products",
-                    "get_data_on": "data",
-                    "consumer_key": "ck_f1ffb2d1960a7e215d1c6aad53d827519c900dd0",
-                    "export_mapper": {
-                        "map": {
-                            "sku": "sku",
-                            "type": "type",
-                            "price": "regular_price",
-                            "title": "name",
-                            "images": "images",
-                            "status": "status",
-                            "quantity": "stock_quantity",
-                            "attributes": "attributes",
-                            "categories": "categories",
-                            "listing_id": "listing_id",
-                            "description": "description",
-                            "category_path": "category_path",
-                            "ignored_parts": {},
-                            "woocomm_listing_id": "id"
-                        }
-                    },
-                    "consumer_secret": "cs_32af8fce5c55bcc7bd4d495911308668dfe1d3c1",
-                    "generate_attributes": true,
-                    "expects_response_code": [201, 200]
+                    }
                 }
-            }],
-            "operation": "read",
-            "paginated": true,
-            "store_data_on": "data"
+            }]
         }
 	}, {
         "order": 1,

@@ -28,7 +28,7 @@ from .actions import Iterate
 from .utils import form_doc
 
 
-ENDPOINT_ROOT_URL = 'http://localhost:9001'
+ENDPOINT_ROOT_URL = 'http://localhost'
 
 
 class WorkflowHandler(object):
@@ -112,6 +112,36 @@ class WorkflowHandler(object):
             page = int(page) + 1
 
             self._handle_entity_fetch(doc, page=page)
+
+    def _handle_single_entity_fetch(self, doc):
+        print("_handle_single_entity_fetch")
+
+        doc_data = doc['data']
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': doc_data['jwt_token']
+        }
+        endpoint_url = "{}/entities/{}/{}".format(
+            ENDPOINT_ROOT_URL,
+            doc_data['org_id'],
+            doc_data['entity_id']
+        )
+
+        response = requests.get(
+            endpoint_url,
+            headers=headers
+        )
+
+        if response.status_code in [401, 404]:
+            print('Got a response error {}, reason: {}'.format(
+                response.status_code,
+                response.reason))
+            return
+
+        response = response.json()
+        self._put_data(response['doc_data'], doc_data['store_data_on'])
+        steps = doc_data.get('steps', False)
+        self._run_steps(steps)
 
     def _get_unit_handlers(self):
         """Collects references for all unit handlers."""
@@ -272,7 +302,10 @@ class WorkflowHandler(object):
                 endpoint = endpoint.replace("$%s" % k, str(v))
 
         if method == 'delete':
-            response = wpapi.delete(endpoint)
+            try:
+                response = wpapi.delete(endpoint)
+            except UserWarning as err:
+                pass
 
         if steps:
             self._run_steps(steps)
@@ -364,11 +397,17 @@ class WorkflowHandler(object):
                 if not tmp_data['woocomm_listing_id']:
                     raise KeyError()
             except KeyError as err:
-                print("{} KeyError, goot go with the POST request...".format(str(err)))
+                print("{} KeyError, woocomm_listing_id is not set for a create request, proceeding...".format(str(err)))
                 response = woocomm.http_post(endpoint, tmp_data)
 
         if method == 'put':
-            response = woocomm.http_put(endpoint, tmp_data)
+            try:
+                if not tmp_data['id']:
+                    raise KeyError()
+                
+                response = woocomm.http_put(endpoint, tmp_data)
+            except KeyError as err:
+                print("{} KeyError, woocommerce listing 'id' is not set for an update request, ignoring...".format(str(err)))
 
         if method == 'get':
             paginated = doc_data.get('paginated', None)
@@ -443,7 +482,11 @@ class WorkflowHandler(object):
         doc_data = doc['data']
 
         if doc_data['operation'] == 'read':
-            self._handle_entity_fetch(doc)
+            try:
+                if doc_data['entity_id']:
+                    self._handle_single_entity_fetch(doc)
+            except KeyError as err:
+                self._handle_entity_fetch(doc)
 
         if doc_data['operation'] == 'create':
             data = self._get_data(doc_data.get('get_data_on'))

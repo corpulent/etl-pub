@@ -38,7 +38,6 @@
                                     "status": "status",
                                     "quantity": "stock_quantity",
                                     "categories": "categories",
-                                    "listing_id": "listing_id",
                                     "description": "description",
                                     "category_path": "category_path",
                                     "attributes": "attributes",
