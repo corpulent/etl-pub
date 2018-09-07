@@ -36,6 +36,7 @@
                                     "title": "name",
                                     "images": "images",
                                     "status": "status",
+                                    "listing_id": "listing_id",
                                     "quantity": "stock_quantity",
                                     "categories": "categories",
                                     "description": "description",

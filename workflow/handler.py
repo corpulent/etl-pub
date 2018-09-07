@@ -28,9 +28,6 @@ from .actions import Iterate
 from .utils import form_doc
 
 
-ENDPOINT_ROOT_URL = 'http://localhost'
-
-
 class WorkflowHandler(object):
     def __init__(self, workflow_doc, **kwargs):
         infinitedict = lambda: defaultdict(infinitedict)
@@ -42,6 +39,7 @@ class WorkflowHandler(object):
         self.source = self.workflow_doc.get('source', -1)
         self.events = []
         self.return_response_body = True
+        self.data_gate_url = kwargs.get('data_gate_url', 'http://localhost')
 
     def _handle_entity_save(self, doc, data):
         doc_data = doc['data']
@@ -60,7 +58,7 @@ class WorkflowHandler(object):
             }
         }
         endpoint_url = "{}/data_gate/in/{}/?mapper_id={}".format(
-            ENDPOINT_ROOT_URL,
+            self.data_gate_url,
             doc_data['org_id'],
             doc_data['import_mapper_id']
         )
@@ -82,7 +80,7 @@ class WorkflowHandler(object):
             'Authorization': doc_data['jwt_token']
         }
         endpoint_url = "{}/entities/{}/?page={}&page_size=1".format(
-            ENDPOINT_ROOT_URL,
+            self.data_gate_url,
             doc_data['org_id'],
             page
         )
@@ -122,7 +120,7 @@ class WorkflowHandler(object):
             'Authorization': doc_data['jwt_token']
         }
         endpoint_url = "{}/entities/{}/{}".format(
-            ENDPOINT_ROOT_URL,
+            self.data_gate_url,
             doc_data['org_id'],
             doc_data['entity_id']
         )
@@ -338,6 +336,11 @@ class WorkflowHandler(object):
             custom = doc_data.get('custom')
             formatted_object = data
 
+            # By default all products are simple products.
+            # And attributes is a list.
+            formatted_object['type'] = 'simple'
+            formatted_object['attributes'] = []
+
             if custom:
                 formatted_object = woocomm._generate_custom_structure(
                     formatted_object,
@@ -390,6 +393,18 @@ class WorkflowHandler(object):
 
             for k, v in vars_mapped.items():
                 endpoint = endpoint.replace("$%s" % k, str(v))
+
+        if method in ['put', 'post']:
+            # Add the external url to meta_data.
+            try:
+                url = tmp_data['url']
+                url = url.replace("?utm_source=devsandboxapp&utm_medium=api&utm_campaign=api", '')
+                tmp_data['meta_data'] = [{
+                    "key": "_external_link",
+                    "value": url
+                }]
+            except KeyError as err:
+                pass
 
         # Making a POST only if woocomm_listing_id is not set.
         if method == 'post':
@@ -526,6 +541,7 @@ class WorkflowHandler(object):
                     self._put_data(temp_data, doc_data['store_data_on'])
                     self._run_steps(steps)
         else:
+            # exit?
             pass
 
     def _unit_stop(self, doc):

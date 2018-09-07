@@ -26,11 +26,12 @@
                             "endpoint": "products",
                             "get_data_on": "entity",
                             "store_data_on": "entity.woocomm_save_response",
-                            "generate_attributes": true,
+                            "generate_attributes": false,
                             "generate_variations": false,
                             "expects_response_code": [201, 200],
                             "export_mapper": {
                                 "map": {
+                                    "url": "url",
                                     "sku": "sku",
                                     "price": "regular_price",
                                     "title": "name",
